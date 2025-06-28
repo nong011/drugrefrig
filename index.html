@@ -208,7 +208,7 @@ function drawGauges() {
     if (last.temp < 15 || last.temp > 25) wrapper.classList.add('alert');
 
     wrapper.innerHTML = `
-      <div class="gauge-title">ห้อง ${sheet}</div>
+      <div class="gauge-title">ตู้เย็นยา ${sheet}</div>
       <div id="gauge_${sheet}" style="width:200px;height:200px"></div>
       <div class="gauge-time">เวลาอ่านล่าสุด: ${last.time.toLocaleString('th-TH')}</div>
       <div class="gauge-time">${((new Date() - last.time) / 60000) <= 6 ? '🟢 Online' : '🔴 Offline'}</div>
@@ -219,12 +219,12 @@ function drawGauges() {
       ['Label', 'Value'], ['°C', last.temp]
     ]);
     const options = {
-      redFrom: 5, redTo: 15,
-      greenFrom: 15, greenTo: 25,
-      yellowFrom: 25, yellowTo: 35,
+      redFrom: -2, redTo: 2,
+      greenFrom: 2, greenTo: 8,
+      yellowFrom: 8, yellowTo: 12,
       max: 35,
       min: 5,
-      majorTicks: ['5','10','15','20','25','30','35'],
+      majorTicks: ['-2','2','4','6','8','10','12'],
       minorTicks: 5
     };
     new google.visualization.Gauge(document.getElementById(`gauge_${sheet}`)).draw(data, options);
@@ -243,7 +243,7 @@ function drawCombinedChart() {
   });
 
   const uniqueTimes = Array.from(timestamps).sort().map(t => new Date(parseInt(t)));
-  const chartArray = [['Time', ...SHEETS.map(s => 'ห้อง ' + s)]];
+  const chartArray = [['Time', ...SHEETS.map(s => 'ตู้เย็นยา ' + s)]];
   uniqueTimes.forEach(time => {
     const row = [time];
     SHEETS.forEach(sheet => {
@@ -279,7 +279,7 @@ function drawHumidityChart() {
   });
 
   const uniqueTimes = Array.from(timestamps).sort().map(t => new Date(parseInt(t)));
-  const chartArray = [['Time', ...SHEETS.map(s => 'ห้อง ' + s)]];
+  const chartArray = [['Time', ...SHEETS.map(s => 'ตู้เย็นยา ' + s)]];
   uniqueTimes.forEach(time => {
     const row = [time];
     SHEETS.forEach(sheet => {
