@@ -117,7 +117,7 @@
     <img src="https://phayaohospital.moph.go.th/assets/images/logonew.png" alt="Phayao Hospital Logo" style="max-width: 1030px; width: 100%; height: auto; object-fit: contain;">
   </div>
   <div class="container">
-    <h1 style="text-align:center; color:#7e5bef">DashBoard Temp-Humidity-Water Leak Detection</h1>
+    <h1 style="text-align:center; color:#7e5bef">DashBoard Drug Refrigerators @Phayao Hospital</h1>
     <div class="timestamp" id="realtime_clock">Loading time...</div>
     <div class="timestamp" id="latest_time"></div>
 
@@ -136,9 +136,11 @@
     <div style="text-align: center; margin-top: 1rem;">
       <label for="serverSelect">เลือกเครื่อง:</label>
       <select id="serverSelect">
-        <option value="Server1">Server1</option>
-        <option value="Server2">Server2</option>
-        <option value="Server3">Server3</option>
+        <option value="Med1">Med1</option>
+        <option value="Med2">Med2</option>
+        <option value="Med3">Med3</option>
+        <option value="SubICU">SubICU</option>
+        <option value="IPDpharm">IPDpharm</option>
       </select>
       <label for="monthSelect">เลือกเดือน:</label>
       <select id="monthSelect">
@@ -159,11 +161,11 @@
         📄 Export รายเดือนเป็น PDF
       </button>
     </div>
-    <div class="footer">© 2025 ระบบติดตามอุณหภูมิ ความชื้น และน้ำรั่ว By... Krairat Komdee, MD.</div>
+    <div class="footer">© 2025 ระบบติดตามอุณหภูมิ ความชื้น By... Krairat Komdee, MD.</div>
   </div>
 <script>
 const SHEET_ID = '1cwOHNULhcB3mRxrDmwf5cmhD_Ny5UlVsg8C1BE48Yys';
-const SHEETS = ['Med2', 'Med3', 'IPDpharm'];
+const SHEETS = ['Med1', 'Med2', 'Med3', 'SubICU', 'IPDpharm'];
 let fullDataBySheet = {};
 let currentRange = 1;
 
@@ -197,7 +199,7 @@ async function fetchAllSheets() {
 function drawGauges() {
   const gaugeContainer = document.getElementById('gauges_section');
   gaugeContainer.innerHTML = '';
-  const boxColors = { Server1: '#FFB6B9', Server2: '#A5D8FF', Server3: '#C3FBA6' };
+  const boxColors = { Med1: '#FFD6A5', Med2: '#FFB6B9', Med3: '#A5D8FF', SubICU: '#D9D7F1', IPDpharm: '#C3FBA6' };
 
   SHEETS.forEach(sheet => {
     const last = fullDataBySheet[sheet]?.at(-1);
@@ -205,29 +207,33 @@ function drawGauges() {
     const wrapper = document.createElement('div');
     wrapper.className = 'gauge-wrapper';
     wrapper.style.backgroundColor = boxColors[sheet];
-    if (last.temp < 15 || last.temp > 25) wrapper.classList.add('alert');
+    if (last.temp < 0 || last.temp > 8) wrapper.classList.add('alert');
+
+    const onlineStatus = ((new Date() - last.time) / 60000) <= 6 ? '<span style="color:green">Online</span>' : '<span style="color:red">Offline</span>';
+
+    const isOffline = ((new Date() - last.time) / 60000) > 6;
+    const isOutOfRange = last.temp < 0 || last.temp > 8;
+    let imageUrl = '';
+    if (isOffline) {
+      imageUrl = 'https://img5.pic.in.th/file/secure-sv1/ChatGPT-Image-Jun-29-2025-03_22_37-PM.png';
+    } else if (isOutOfRange) {
+      imageUrl = 'https://img2.pic.in.th/pic/ChatGPT-Image-Jun-29-2025-03_28_05-PM.png';
+    } else {
+      imageUrl = 'https://img2.pic.in.th/pic/ChatGPT-Image-Jun-29-2025-03_22_30-PM.png';
+    }
 
     wrapper.innerHTML = `
-      <div class="gauge-title">ตู้เย็นยา ${sheet}</div>
-      <div id="gauge_${sheet}" style="width:200px;height:200px"></div>
-      <div class="gauge-time">เวลาอ่านล่าสุด: ${last.time.toLocaleString('th-TH')}</div>
-      <div class="gauge-time">${((new Date() - last.time) / 60000) <= 6 ? '🟢 Online' : '🔴 Offline'}</div>
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <img src="${imageUrl}" alt="fridge" style="width: 80px; height: auto;">
+        <div style="text-align: left; font-size: 0.95rem;">
+          <div><strong>ตู้เย็นยา ${sheet}</strong> ${onlineStatus}</div>
+          <div>📅 Time: ${last.time.toLocaleString('th-TH')}</div>
+          <div>🌡️ Temp: ${last.temp.toFixed(1)}°C</div>
+          <div>💧 Humid: ${last.hum.toFixed(1)}%</div>
+        </div>
+      </div>
     `;
     gaugeContainer.appendChild(wrapper);
-
-    const data = google.visualization.arrayToDataTable([
-      ['Label', 'Value'], ['°C', last.temp]
-    ]);
-    const options = {
-      redFrom: -2, redTo: 2,
-      greenFrom: 2, greenTo: 8,
-      yellowFrom: 8, yellowTo: 12,
-      max: 35,
-      min: 5,
-      majorTicks: ['-2','2','4','6','8','10','12'],
-      minorTicks: 5
-    };
-    new google.visualization.Gauge(document.getElementById(`gauge_${sheet}`)).draw(data, options);
   });
 }
 
@@ -243,7 +249,7 @@ function drawCombinedChart() {
   });
 
   const uniqueTimes = Array.from(timestamps).sort().map(t => new Date(parseInt(t)));
-  const chartArray = [['Time', ...SHEETS.map(s => 'ตู้เย็นยา ' + s)]];
+  const chartArray = [['Time', ...SHEETS.map(s => 'ห้อง ' + s)]];
   uniqueTimes.forEach(time => {
     const row = [time];
     SHEETS.forEach(sheet => {
@@ -279,7 +285,7 @@ function drawHumidityChart() {
   });
 
   const uniqueTimes = Array.from(timestamps).sort().map(t => new Date(parseInt(t)));
-  const chartArray = [['Time', ...SHEETS.map(s => 'ตู้เย็นยา ' + s)]];
+  const chartArray = [['Time', ...SHEETS.map(s => 'ห้อง ' + s)]];
   uniqueTimes.forEach(time => {
     const row = [time];
     SHEETS.forEach(sheet => {
