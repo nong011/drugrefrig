@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<!--📦 Version: v1.5-DigitalFridge
+<!--
+📦 Version: v1.5-DigitalFridge
 📅 วันที่: 2025-06-29
 👤 ผู้พัฒนา: Dr. Krairat Komdee
 
@@ -11,7 +12,8 @@
 - Dashboard แสดงสถานะ Online/Offline พร้อมกราฟย้อนหลัง (Temp/Humidity)
 - เปลี่ยนรูปตู้เย็นอัตโนมัติตามสถานะ (ในช่วง / นอกช่วง / offline)
 - Export รายเดือนเป็น PDF
-  -->
+-->
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="60">
@@ -210,7 +212,13 @@ async function fetchAllSheets() {
 function drawGauges() {
   const gaugeContainer = document.getElementById('gauges_section');
   gaugeContainer.innerHTML = '';
-  const boxColors = { Med1: '#FFD6A5', Med2: '#FFB6B9', Med3: '#A5D8FF', SubICU: '#D9D7F1', IPDpharm: '#C3FBA6' };
+  const boxColors = {
+    Med1: '#FFB6D9',
+    Med2: '#BED599',
+    Med3: '#FFF9B0',
+    SubICU: '#38B6FF',
+    IPDpharm: '#D3D3D3'
+  };
 
   SHEETS.forEach(sheet => {
     const last = fullDataBySheet[sheet]?.at(-1);
@@ -278,7 +286,7 @@ function drawCombinedChart() {
     lineWidth: 2,
     pointSize: 4,
     legend: { position: 'bottom' },
-    colors: ['#FFB6B9', '#A5D8FF', '#C3FBA6'],
+    colors: ['#FFB6D9', '#BED599', '#FFF9B0', '#38B6FF', '#D3D3D3'],
     animation: {startup: true, duration: 1000, easing: 'out'}
   };
   new google.visualization.LineChart(document.getElementById('chart_div')).draw(data, options);
