@@ -214,7 +214,7 @@ function drawGauges() {
   gaugeContainer.innerHTML = '';
   const boxColors = {
     Med1: '#FFB6D9',
-    Med2: '#BED599',
+    Med2: '#B27ED3',
     Med3: '#FFF9B0',
     SubICU: '#38B6FF',
     IPDpharm: '#D3D3D3'
@@ -286,7 +286,7 @@ function drawCombinedChart() {
     lineWidth: 2,
     pointSize: 4,
     legend: { position: 'bottom' },
-    colors: ['#FFB6D9', '#BED599', '#FFF9B0', '#38B6FF', '#D3D3D3'],
+    colors: ['#FFB6D9', '#B2ED3', '#FFF9B0', '#38B6FF', '#D3D3D3'],
     animation: {startup: true, duration: 1000, easing: 'out'}
   };
   new google.visualization.LineChart(document.getElementById('chart_div')).draw(data, options);
