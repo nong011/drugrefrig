@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <!--
-📦 Version: v1.8-DigitalFridge (Updated)
+📦 Version: v2.5-DigitalFridge (Updated)
 📅 วันที่: 2025-07-18
 👤 ผู้พัฒนา: Dr. Krairat Komdee
 
@@ -16,6 +16,10 @@
 - กราฟแสดงเฉพาะข้อมูลจากตู้เย็นที่ออนไลน์เท่านั้น
 - สถานะตู้เย็น (Gauges) แสดงผลทุกตู้เย็น ไม่ว่าออนไลน์หรือออฟไลน์
 - ปรับปรุงการจัดเรียงกล่องสถานะตู้เย็นให้สวยงามและตรงกัน
+- เพิ่มการปรับ Range ของแกน Y สำหรับกราฟอุณหภูมิและความชื้น
+- แยกกราฟอุณหภูมิและความชื้นในการ Export PDF
+- แก้ไขปัญหา Error ในการ Export PDF เมื่อข้อมูล Temp/Humidity เป็น null ทั้งหมด โดยส่งข้อมูลแบบตรงไปตรงมา
+- ปรับสีกราฟบน Dashboard หลัก ให้ตรงกับสีของกล่องสถานะตู้เย็น
 -->
 
   <meta charset="UTF-8">
@@ -328,6 +332,16 @@ function drawCombinedChart() {
   const alignedData = {};
   const onlineSheets = []; // To store names of sheets that are online and have data
 
+  // Define boxColors here again or access from global scope if preferred
+  const boxColors = {
+    Med1: '#FFB6D9',
+    Med2: '#B27ED3',
+    Med3: '#FFF9B0',
+    SubICU: '#38B6FF',
+    IPDpharm: '#D3D3D3'
+  };
+  const chartColors = []; // Array to hold colors for the chart lines
+
   SHEETS.forEach(sheet => {
     const sheetData = fullDataBySheet[sheet] || [];
     const last = sheetData.at(-1);
@@ -336,6 +350,7 @@ function drawCombinedChart() {
 
     if (!isOffline) { // Only include online sheets in the chart
       onlineSheets.push(sheet);
+      chartColors.push(boxColors[sheet]); // Add the corresponding box color
       // Filter data for the current range
       alignedData[sheet] = sheetData.filter(d => d.time >= start && d.temp !== null);
       alignedData[sheet].forEach(d => timestamps.add(d.time.getTime()));
@@ -366,12 +381,12 @@ function drawCombinedChart() {
     hAxis: { title: 'เวลา', format: 'dd/MM HH:mm' },
     vAxis: {
         title: 'อุณหภูมิ (°C)',
-        viewWindow: { min: -2, max: 10 } // Fixed range for better comparison
+        viewWindow: { min: -10, max: 20 } // Fixed range for better comparison, adjust as needed
     },
     lineWidth: 2,
     pointSize: 4,
     legend: { position: 'bottom' },
-    colors: ['#FFB6D9', '#B27ED3', '#FFF9B0', '#38B6FF', '#D3D3D3'], // Original colors
+    colors: chartColors, // Use dynamically assigned colors
     animation: {startup: true, duration: 1000, easing: 'out'}
   };
   new google.visualization.LineChart(document.getElementById('chart_div')).draw(data, options);
@@ -387,6 +402,16 @@ function drawHumidityChart() {
   const alignedData = {};
   const onlineSheets = []; // To store names of sheets that are online and have data
 
+  // Define boxColors here again or access from global scope if preferred
+  const boxColors = {
+    Med1: '#FFB6D9',
+    Med2: '#B27ED3',
+    Med3: '#FFF9B0',
+    SubICU: '#38B6FF',
+    IPDpharm: '#D3D3D3'
+  };
+  const chartColors = []; // Array to hold colors for the chart lines
+
   SHEETS.forEach(sheet => {
     const sheetData = fullDataBySheet[sheet] || [];
     const last = sheetData.at(-1);
@@ -395,6 +420,7 @@ function drawHumidityChart() {
 
     if (!isOffline) { // Only include online sheets in the chart
       onlineSheets.push(sheet);
+      chartColors.push(boxColors[sheet]); // Add the corresponding box color
       // Filter data for the current range
       alignedData[sheet] = sheetData.filter(d => d.time >= start && d.hum !== null);
       alignedData[sheet].forEach(d => timestamps.add(d.time.getTime()));
@@ -423,11 +449,14 @@ function drawHumidityChart() {
   const options = {
     title: `ความชื้นย้อนหลัง ${currentRange} ชั่วโมง`,
     hAxis: { title: 'เวลา', format: 'dd/MM HH:mm' },
-    vAxis: { title: 'ความชื้น (%)' },
+    vAxis: {
+        title: 'ความชื้น (%)',
+        viewWindow: { min: 0, max: 100 } // Added fixed range for humidity, adjust as needed
+    },
     lineWidth: 2,
     pointSize: 4,
     legend: { position: 'bottom' },
-    colors: ['#60a5fa', '#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'], // Adjusted blue tones for humidity
+    colors: chartColors, // Use dynamically assigned colors
     animation: {startup: true, duration: 1000, easing: 'out'}
   };
   new google.visualization.LineChart(document.getElementById('humidity_chart')).draw(data, options);
@@ -484,7 +513,7 @@ google.charts.setOnLoadCallback(init);
 <script>
 /**
  * Exports monthly temperature and humidity data for a selected server as a PDF.
- * Opens a new window with a chart and triggers print.
+ * Opens a new window with two separate charts (temperature and humidity) and triggers print.
  */
 function exportMonthlyPDF() {
   const server = document.getElementById('serverSelect').value;
@@ -492,12 +521,12 @@ function exportMonthlyPDF() {
   const month = parseInt(monthSelect.value);
   const monthName = monthSelect.options[month].text;
 
-  // Filter data for the selected server and month, ensuring valid temp/hum
-  const data = (fullDataBySheet[server] || []).filter(d =>
-    d.time && d.time.getMonth() === month && d.temp !== null && d.hum !== null
+  // Get all data for the selected server and month (without filtering temp/hum yet)
+  const rawDataForMonth = (fullDataBySheet[server] || []).filter(d =>
+    d.time && d.time.getMonth() === month
   );
 
-  if (data.length === 0) {
+  if (rawDataForMonth.length === 0) {
     // Display a custom modal message instead of alert()
     const messageBox = document.createElement('div');
     messageBox.style.cssText = `
@@ -513,29 +542,69 @@ function exportMonthlyPDF() {
     return;
   }
 
-  const chartArray = [['Time', '°C', 'Humidity']];
-  data.forEach(d => chartArray.push([d.time, d.temp, d.hum]));
+  // Prepare data for temperature chart, filtering out entries with null temp
+  const tempChartData = [];
+  rawDataForMonth.forEach(d => {
+      if (d.temp !== null) { // Only push if temperature data exists
+          tempChartData.push([d.time, d.temp]);
+      }
+  });
+
+  // Prepare data for humidity chart, filtering out entries with null hum
+  const humChartData = [];
+  rawDataForMonth.forEach(d => {
+      if (d.hum !== null) { // Only push if humidity data exists
+          humChartData.push([d.time, d.hum]);
+      }
+  });
+
+  // Check if there's any valid data to draw for either chart
+  if (tempChartData.length === 0 && humChartData.length === 0) { // If both are empty after filtering
+      const messageBox = document.createElement('div');
+      messageBox.style.cssText = `
+          position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+          z-index: 1000; text-align: center;
+      `;
+      messageBox.innerHTML = `
+          <p>ไม่มีข้อมูลอุณหภูมิหรือความชื้นที่ถูกต้องสำหรับเดือนที่เลือก</p>
+          <button onclick="this.parentNode.remove()" style="background-color: #c084fc; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer;">ปิด</button>
+      `;
+      document.body.appendChild(messageBox);
+      return;
+  }
+
 
   // Open a new window for the PDF report
-  const newWin = window.open('', '', 'width=1024,height=768');
+  const newWin = window.open('', '', 'width=1024,height=1000'); // Increased height for two charts
   newWin.document.open();
   newWin.document.write(`
     <html>
       <head>
         <title>Monthly Report PDF</title>
+        <style>
+            body { font-family: 'Noto Sans Thai Rounded', sans-serif; }
+            h2 { text-align:center; color:#7e5bef; }
+            .chart-container { width:100%; height:450px; margin-bottom: 20px; } /* Adjusted height for each chart */
+            img { display: block; margin: 0 auto 1rem auto; height: 80px; } /* Centered logo */
+        </style>
       </head>
       <body>
-  <div style="text-align:center; margin-bottom: 1rem;">
-    <img src="https://phayaohospital.moph.go.th/assets/images/logonew.png" alt="Phayao Hospital Logo" style="height: 80px;">
-  </div>
-  <h2 style="text-align:center">กราฟอุณหภูมิ และความชื้น ${server} เดือน ${monthName}</h2>
-        <div id="chart" style="width:100%; height:500px;"></div>
+        <img src="https://phayaohospital.moph.go.th/assets/images/logonew.png" alt="Phayao Hospital Logo">
+        <h2>รายงานอุณหภูมิ และความชื้น ${server} เดือน ${monthName}</h2>
+        <div id="temp_chart_pdf" class="chart-container"></div>
+        <div id="hum_chart_pdf" class="chart-container"></div>
       </body>
     </html>
   `);
   newWin.document.close();
 
-  // Load Google Charts in the new window and draw the chart
+  // Assign data arrays directly to properties of the new window object
+  // This avoids stringifying complex objects like Date and re-parsing them in the child script
+  newWin.tempChartDataForPDF = tempChartData;
+  newWin.humChartDataForPDF = humChartData;
+
+  // Load Google Charts in the new window and draw the charts
   newWin.onload = () => {
     const loader = newWin.document.createElement('script');
     loader.src = 'https://www.gstatic.com/charts/loader.js';
@@ -543,21 +612,74 @@ function exportMonthlyPDF() {
       const script = newWin.document.createElement('script');
       script.text = `
         google.charts.load('current', {packages: ['corechart']});
-        google.charts.setOnLoadCallback(drawChart);
-        function drawChart() {
-          const data = google.visualization.arrayToDataTable(${JSON.stringify(chartArray)});
-          const options = {
-            title: 'กราฟอุณหภูมิ และความชื้น : ${server} เดือน: ${monthName}',
-            hAxis: { title: 'เวลา', format: 'dd/MM HH:mm' },
-            vAxis: { title: 'ค่า' },
-            lineWidth: 2,
-            pointSize: 4,
-            legend: { position: 'bottom' },
-            colors: ['#fb923c', '#60a5fa']
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+          // Access data arrays directly from the parent window's properties
+          const tempChartData = window.tempChartDataForPDF;
+          const humChartData = window.humChartDataForPDF;
+
+          // Define boxColors here to be accessible within the new window's script
+          const boxColors = {
+            Med1: '#FFB6D9',
+            Med2: '#B27ED3',
+            Med3: '#FFF9B0',
+            SubICU: '#38B6FF',
+            IPDpharm: '#D3D3D3'
           };
-          const chart = new google.visualization.LineChart(document.getElementById('chart'));
-          chart.draw(data, options);
-          window.print(); // Trigger print dialog after chart is drawn
+          // Get the color for the currently selected server
+          const selectedServerColor = boxColors['${server}']; // Use the server variable directly
+
+          // Draw Temperature Chart
+          // Only draw if there's actual temperature data
+          if (tempChartData.length > 0) {
+              const tempData = new google.visualization.DataTable();
+              tempData.addColumn('datetime', 'Time');
+              tempData.addColumn('number', '°C');
+              tempData.addRows(tempChartData); // Add rows directly from the array
+
+              const tempOptions = {
+                title: 'กราฟอุณหภูมิ : ${server} เดือน: ${monthName}',
+                hAxis: { title: 'เวลา', format: 'dd/MM HH:mm' },
+                vAxis: { title: 'อุณหภูมิ (°C)', viewWindow: { min: -10, max: 20 } },
+                lineWidth: 2,
+                pointSize: 4,
+                legend: { position: 'bottom' },
+                colors: [selectedServerColor] // Use the color corresponding to the selected server
+              };
+              const tempChart = new google.visualization.LineChart(document.getElementById('temp_chart_pdf'));
+              tempChart.draw(tempData, tempOptions);
+          } else {
+              newWin.document.getElementById('temp_chart_pdf').innerHTML = '<div style="text-align:center; padding:20px; color:#888;">ไม่มีข้อมูลอุณหภูมิสำหรับเดือนที่เลือก</div>';
+          }
+
+          // Draw Humidity Chart
+          // Only draw if there's actual humidity data
+          if (humChartData.length > 0) {
+              const humData = new google.visualization.DataTable();
+              humData.addColumn('datetime', 'Time');
+              humData.addColumn('number', 'Humidity');
+              humData.addRows(humChartData); // Add rows directly from the array
+
+              const humOptions = {
+                title: 'กราฟความชื้น : ${server} เดือน: ${monthName}',
+                hAxis: { title: 'เวลา', format: 'dd/MM HH:mm' },
+                vAxis: { title: 'ความชื้น (%)', viewWindow: { min: 0, max: 100 } },
+                lineWidth: 2,
+                pointSize: 4,
+                legend: { position: 'bottom' },
+                colors: [selectedServerColor] // Use the color corresponding to the selected server
+              };
+              const humChart = new google.visualization.LineChart(document.getElementById('hum_chart_pdf'));
+              humChart.draw(humData, humOptions);
+          } else {
+              newWin.document.getElementById('hum_chart_pdf').innerHTML = '<div style="text-align:center; padding:20px; color:#888;">ไม่มีข้อมูลความชื้นสำหรับเดือนที่เลือก</div>';
+          }
+
+          // Trigger print dialog after both charts are drawn (or messages displayed)
+          setTimeout(() => {
+            newWin.print();
+          }, 500); // Small delay to ensure rendering
         }
       `;
       newWin.document.body.appendChild(script);
