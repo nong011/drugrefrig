@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <!--
-📦 Version: v1.7-DigitalFridge (Updated)
+📦 Version: v1.8-DigitalFridge (Updated)
 📅 วันที่: 2025-07-18
 👤 ผู้พัฒนา: Dr. Krairat Komdee
 
@@ -15,6 +15,7 @@
 - อัปเดตข้อมูลอัตโนมัติทุก 60 วินาทีด้วย JavaScript (แทน meta refresh)
 - กราฟแสดงเฉพาะข้อมูลจากตู้เย็นที่ออนไลน์เท่านั้น
 - สถานะตู้เย็น (Gauges) แสดงผลทุกตู้เย็น ไม่ว่าออนไลน์หรือออฟไลน์
+- ปรับปรุงการจัดเรียงกล่องสถานะตู้เย็นให้สวยงามและตรงกัน
 -->
 
   <meta charset="UTF-8">
@@ -81,7 +82,7 @@
     }
     .gauges {
       display: flex;
-      justify-content: space-around;
+      justify-content: center; /* Changed from space-around to center for better alignment */
       flex-wrap: wrap;
       gap: 2rem;
       margin-bottom: 2rem;
@@ -94,6 +95,8 @@
       border-radius: 20px;
       background-color: #fff;
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      width: 280px; /* Added fixed width for consistent sizing */
+      box-sizing: border-box; /* Include padding in the width calculation */
     }
     .gauge-title {
       font-size: 1.1rem;
@@ -122,8 +125,12 @@
         font-size: 0.9rem;
         padding: 0.4rem 1rem;
       }
+      .gauges {
+        gap: 1rem; /* Reduce gap on smaller screens */
+      }
       .gauge-wrapper {
-        width: 100%;
+        width: 100%; /* Make it full width on small screens */
+        max-width: 100%; /* Ensure it doesn't exceed parent width */
       }
     }
   </style>
