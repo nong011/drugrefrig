@@ -2,30 +2,31 @@
 <html lang="th">
 <head>
 <!--
-📦 Version: v2.5-DigitalFridge (Updated)
+📦 Version: v2.9-DigitalFridge (Updated)
 📅 วันที่: 2025-07-18
 👤 ผู้พัฒนา: Dr. Krairat Komdee
 
 ✅ คุณสมบัติ:
 - ใช้ข้อมูลจาก Google Sheets ID: 1cwOHNULhcB3mRxrDmwf5cmhD_Ny5UlVsg8C1BE48Yys
-- รองรับ 5 แผ่นข้อมูล: Med1, Med2, Med3, SubICU, IPDpharm
+- รองรับ 9 แผ่นข้อมูล: Med1, Med2, Med3, SubICU, ICU1, ICU2, ICU4, IPDpharm, Manupharm
 - Dashboard แสดงสถานะ Online/Offline พร้อมกราฟย้อนหลัง (Temp/Humidity)
 - เปลี่ยนรูปตู้เย็นอัตโนมัติตามสถานะ (ในช่วง / นอกช่วง / offline)
 - Export รายเดือนเป็น PDF
 - อัปเดตข้อมูลอัตโนมัติทุก 60 วินาทีด้วย JavaScript (แทน meta refresh)
 - กราฟแสดงเฉพาะข้อมูลจากตู้เย็นที่ออนไลน์เท่านั้น
-- สถานะตู้เย็น (Gauges) แสดงผลทุกตู้เย็น ไม่ว่าออนไลน์หรือออฟไลน์
+- สถานะตู้เย็น (Gauges) แสดงผลทุกตู้เย็น ไม่ว่าจะออนไลน์หรือออฟไลน์
 - ปรับปรุงการจัดเรียงกล่องสถานะตู้เย็นให้สวยงามและตรงกัน
 - เพิ่มการปรับ Range ของแกน Y สำหรับกราฟอุณหภูมิและความชื้น
 - แยกกราฟอุณหภูมิและความชื้นในการ Export PDF
 - แก้ไขปัญหา Error ในการ Export PDF เมื่อข้อมูล Temp/Humidity เป็น null ทั้งหมด โดยส่งข้อมูลแบบตรงไปตรงมา
 - ปรับสีกราฟบน Dashboard หลัก ให้ตรงกับสีของกล่องสถานะตู้เย็น
+- ปรับปรุงหน้าตาของกล่องสถานะตู้เย็น (Gauges) ตามที่ร้องขอ
 -->
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- <meta http-equiv="refresh" content="60"> -- Removed as per request -->
-  <title>Server Temp/Humidity/WaterLeak Monitor</title>
+  <title>DashBoard Drug Refirgerator @Phayao Hospital</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai+Rounded:wght@400;700&display=swap" rel="stylesheet">
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
@@ -101,6 +102,14 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       width: 280px; /* Added fixed width for consistent sizing */
       box-sizing: border-box; /* Include padding in the width calculation */
+      position: relative; /* For absolute positioning of status */
+    }
+    .gauge-status-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-weight: bold;
+        font-size: 0.9rem;
     }
     .gauge-title {
       font-size: 1.1rem;
@@ -167,7 +176,11 @@
         <option value="Med2">Med2</option>
         <option value="Med3">Med3</option>
         <option value="SubICU">SubICU</option>
+        <option value="ICU1">ICU1</option>
+        <option value="ICU2">ICU2</option>
+        <option value="ICU4">ICU4</option>
         <option value="IPDpharm">IPDpharm</option>
+        <option value="Manupharm">Manupharm</option>
       </select>
       <label for="monthSelect">เลือกเดือน:</label>
       <select id="monthSelect">
@@ -192,7 +205,7 @@
   </div>
 <script>
 const SHEET_ID = '1cwOHNULhcB3mRxrDmwf5cmhD_Ny5UlVsg8C1BE48Yys';
-const SHEETS = ['Med1', 'Med2', 'Med3', 'SubICU', 'IPDpharm'];
+const SHEETS = ['Med1', 'Med2', 'Med3', 'SubICU', 'ICU1', 'ICU2', 'ICU4', 'IPDpharm', 'Manupharm'];
 let fullDataBySheet = {};
 let currentRange = 1;
 
@@ -270,7 +283,11 @@ function drawGauges() {
     Med2: '#B27ED3',
     Med3: '#FFF9B0',
     SubICU: '#38B6FF',
-    IPDpharm: '#D3D3D3'
+    ICU1: '#FFD700', // Gold
+    ICU2: '#ADFF2F', // GreenYellow
+    ICU4: '#DA70D6', // Orchid
+    IPDpharm: '#D3D3D3',
+    Manupharm: '#87CEEB' // SkyBlue
   };
 
   SHEETS.forEach(sheet => {
@@ -303,20 +320,25 @@ function drawGauges() {
     wrapper.style.backgroundColor = boxColors[sheet];
 
     // Display time, temp, hum. If data is missing/invalid, show N/A or Invalid Date.
-    const displayTime = last && last.time !== null ? last.time.toLocaleString('th-TH') : 'Invalid Date';
+    const displayTime = last && last.time !== null ? last.time.toLocaleString('th-TH', { hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false }) : 'N/A';
+    const displayDate = last && last.time !== null ? last.time.toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
+    const displayFullDateTime = last && last.time !== null ? last.time.toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false }) : 'N/A';
     const displayTemp = last && last.temp !== null ? last.temp.toFixed(1) + '°C' : 'N/A';
     const displayHum = last && last.hum !== null ? last.hum.toFixed(1) + '%' : 'N/A';
 
     wrapper.innerHTML = `
-      <div style="display: flex; gap: 1rem; align-items: center;">
-        <img src="${imageUrl}" alt="fridge" style="width: 80px; height: auto;">
-        <div style="text-align: left; font-size: 0.95rem;">
-          <div><strong>ตู้เย็นยา ${sheet}</strong> ${onlineStatusText}</div>
-          <div>📅 Time: ${displayTime}</div>
-          <div>🌡️ Temp: ${displayTemp}</div>
-          <div>💧 Humid: ${displayHum}</div>
+        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 0.5rem;">
+            <div class="gauge-title">ตู้เย็นยา ${sheet}</div>
+            <div class="gauge-status-overlay">${onlineStatusText}</div>
         </div>
-      </div>
+        <div style="display: flex; gap: 1rem; align-items: center; width: 100%;">
+            <img src="${imageUrl}" alt="fridge" style="width: 80px; height: auto;">
+            <div style="text-align: left; font-size: 0.95rem; flex-grow: 1;">
+                <div>Time: ${displayFullDateTime}</div>
+                <div>🌡️ Temp: ${displayTemp}</div>
+                <div>💧 Humid: ${displayHum}</div>
+            </div>
+        </div>
     `;
     gaugeContainer.appendChild(wrapper);
   });
@@ -338,7 +360,11 @@ function drawCombinedChart() {
     Med2: '#B27ED3',
     Med3: '#FFF9B0',
     SubICU: '#38B6FF',
-    IPDpharm: '#D3D3D3'
+    ICU1: '#FFD700', // Gold
+    ICU2: '#ADFF2F', // GreenYellow
+    ICU4: '#DA70D6', // Orchid
+    IPDpharm: '#D3D3D3',
+    Manupharm: '#87CEEB' // SkyBlue
   };
   const chartColors = []; // Array to hold colors for the chart lines
 
@@ -408,7 +434,11 @@ function drawHumidityChart() {
     Med2: '#B27ED3',
     Med3: '#FFF9B0',
     SubICU: '#38B6FF',
-    IPDpharm: '#D3D3D3'
+    ICU1: '#FFD700', // Gold
+    ICU2: '#ADFF2F', // GreenYellow
+    ICU4: '#DA70D6', // Orchid
+    IPDpharm: '#D3D3D3',
+    Manupharm: '#87CEEB' // SkyBlue
   };
   const chartColors = []; // Array to hold colors for the chart lines
 
@@ -590,7 +620,7 @@ function exportMonthlyPDF() {
         </style>
       </head>
       <body>
-        <img src="https://phayaohospital.moph.go.th/assets/images/logonew.png" alt="Phayao Hospital Logo">
+        <img src="https://phayaohospital.moph.go.th/assets/images/logonew.png" alt="Phayaao Hospital Logo">
         <h2>รายงานอุณหภูมิ และความชื้น ${server} เดือน ${monthName}</h2>
         <div id="temp_chart_pdf" class="chart-container"></div>
         <div id="hum_chart_pdf" class="chart-container"></div>
@@ -603,6 +633,7 @@ function exportMonthlyPDF() {
   // This avoids stringifying complex objects like Date and re-parsing them in the child script
   newWin.tempChartDataForPDF = tempChartData;
   newWin.humChartDataForPDF = humChartData;
+  newWin.selectedServerForPDF = server; // Pass the selected server name for color lookup
 
   // Load Google Charts in the new window and draw the charts
   newWin.onload = () => {
@@ -618,6 +649,7 @@ function exportMonthlyPDF() {
           // Access data arrays directly from the parent window's properties
           const tempChartData = window.tempChartDataForPDF;
           const humChartData = window.humChartDataForPDF;
+          const server = window.selectedServerForPDF; // Access the server name
 
           // Define boxColors here to be accessible within the new window's script
           const boxColors = {
@@ -625,10 +657,14 @@ function exportMonthlyPDF() {
             Med2: '#B27ED3',
             Med3: '#FFF9B0',
             SubICU: '#38B6FF',
-            IPDpharm: '#D3D3D3'
+            ICU1: '#FFD700', // Gold
+            ICU2: '#ADFF2F', // GreenYellow
+            ICU4: '#DA70D6', // Orchid
+            IPDpharm: '#D3D3D3',
+            Manupharm: '#87CEEB' // SkyBlue
           };
           // Get the color for the currently selected server
-          const selectedServerColor = boxColors['${server}']; // Use the server variable directly
+          const selectedServerColor = boxColors[server]; // Use the server variable directly
 
           // Draw Temperature Chart
           // Only draw if there's actual temperature data
