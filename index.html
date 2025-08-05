@@ -8,7 +8,7 @@
 
 ✅ คุณสมบัติ:
 - ใช้ข้อมูลจาก Google Sheets ID: 1cwOHNULhcB3mRxrDmwf5cmhD_Ny5UlVsg8C1BE48Yys
-- รองรับ 9 แผ่นข้อมูล: Med1, Med2, Med3, SubICU, ICU1, ICU2, ICU4, IPDpharm, Manupharm
+- รองรับ 9 แผ่นข้อมูล: Med1, Med2, Med3, SubICU, ICU1, ICU2, ICU4, IPDpharm, PriPed1
 - Dashboard แสดงสถานะ Online/Offline พร้อมกราฟย้อนหลัง (Temp/Humidity)
 - เปลี่ยนรูปตู้เย็นอัตโนมัติตามสถานะ (ในช่วง / นอกช่วง / offline)
 - Export รายเดือนเป็น PDF
@@ -180,7 +180,7 @@
         <option value="ICU2">ICU2</option>
         <option value="ICU4">ICU4</option>
         <option value="IPDpharm">IPDpharm</option>
-        <option value="Manupharm">Manupharm</option>
+        <option value="PriPed1">PriPed1</option>
       </select>
       <label for="monthSelect">เลือกเดือน:</label>
       <select id="monthSelect">
@@ -205,7 +205,7 @@
   </div>
 <script>
 const SHEET_ID = '1cwOHNULhcB3mRxrDmwf5cmhD_Ny5UlVsg8C1BE48Yys';
-const SHEETS = ['Med1', 'Med2', 'Med3', 'SubICU', 'ICU1', 'ICU2', 'ICU4', 'IPDpharm', 'Manupharm'];
+const SHEETS = ['Med1', 'Med2', 'Med3', 'SubICU', 'ICU1', 'ICU2', 'ICU4', 'IPDpharm', 'PriPed1'];
 let fullDataBySheet = {};
 let currentRange = 1;
 
@@ -287,7 +287,7 @@ function drawGauges() {
     ICU2: '#ADFF2F', // GreenYellow
     ICU4: '#DA70D6', // Orchid
     IPDpharm: '#D3D3D3',
-    Manupharm: '#87CEEB' // SkyBlue
+    PriPed1: '#87CEEB' // SkyBlue
   };
 
   SHEETS.forEach(sheet => {
@@ -364,7 +364,7 @@ function drawCombinedChart() {
     ICU2: '#ADFF2F', // GreenYellow
     ICU4: '#DA70D6', // Orchid
     IPDpharm: '#D3D3D3',
-    Manupharm: '#87CEEB' // SkyBlue
+    PriPed1: '#87CEEB' // SkyBlue
   };
   const chartColors = []; // Array to hold colors for the chart lines
 
@@ -438,7 +438,7 @@ function drawHumidityChart() {
     ICU2: '#ADFF2F', // GreenYellow
     ICU4: '#DA70D6', // Orchid
     IPDpharm: '#D3D3D3',
-    Manupharm: '#87CEEB' // SkyBlue
+    PriPed1: '#87CEEB' // SkyBlue
   };
   const chartColors = []; // Array to hold colors for the chart lines
 
@@ -661,7 +661,7 @@ function exportMonthlyPDF() {
             ICU2: '#ADFF2F', // GreenYellow
             ICU4: '#DA70D6', // Orchid
             IPDpharm: '#D3D3D3',
-            Manupharm: '#87CEEB' // SkyBlue
+            PriPed1: '#87CEEB' // SkyBlue
           };
           // Get the color for the currently selected server
           const selectedServerColor = boxColors[server]; // Use the server variable directly
